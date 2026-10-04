@@ -50,6 +50,7 @@ jobs:
             if [ ! -f "workspace_app/package.json" ]; then
               SUBDIR=$(find workspace_app -maxdepth 2 -name "package.json" -exec dirname {} \;)
               if [ -n "$SUBDIR" ]; then
+                echo "Moviendo archivos desde $SUBDIR a workspace_app"
                 cp -r $SUBDIR/* workspace_app/ || true
               fi
             fi
@@ -85,7 +86,10 @@ jobs:
 
       - name: 🏗️ Compilar Proyecto Web (Vite)
         working-directory: ${{ env.APP_DIR }}
-        run: npx vite build
+        run: |
+          echo "Directorio actual y archivos:"
+          ls -la
+          npx vite build --base=./
 
       - name: 🤖 Inicializar y Sincronizar Capacitor Android
         working-directory: ${{ env.APP_DIR }}
