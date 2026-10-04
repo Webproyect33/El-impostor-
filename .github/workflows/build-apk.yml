@@ -10,6 +10,9 @@ on:
     branches: [ "main", "master" ]
   workflow_dispatch: # Permite ejecutar manualmente desde la pestaña Actions en GitHub
 
+permissions:
+  contents: read
+
 jobs:
   build-apk:
     runs-on: ubuntu-latest
@@ -26,22 +29,18 @@ jobs:
           echo "=============================================="
           echo " Buscando archivos .zip en el repositorio..."
           echo "=============================================="
-          
-          # Buscar todos los archivos .zip en el repositorio
           ZIP_FILES=$(find . -maxdepth 3 -name "*.zip" -type f)
           
           if [ -z "$ZIP_FILES" ]; then
             echo "⚠️ No se encontró ningún archivo .zip. Se usará el código fuente en la raíz."
             echo "USE_ZIP=false" >> $GITHUB_ENV
           else
-            echo "Archivos .zip encontrados en el repositorio:"
+            echo "Archivos .zip encontrados:"
             echo "$ZIP_FILES"
             
-            # Ordenar por fecha de modificación / commit y seleccionar el más reciente
+            # Ordenar por fecha de modificación y tomar el más reciente
             LATEST_ZIP=$(ls -t $ZIP_FILES | head -n 1)
-            echo "----------------------------------------------"
-            echo "✅ Archivo .zip MÁS RECIENTE seleccionado: $LATEST_ZIP"
-            echo "----------------------------------------------"
+            echo "✅ Archivo .zip más reciente seleccionado: $LATEST_ZIP"
             echo "LATEST_ZIP=$LATEST_ZIP" >> $GITHUB_ENV
             echo "USE_ZIP=true" >> $GITHUB_ENV
           fi
@@ -51,13 +50,12 @@ jobs:
         run: |
           mkdir -p workspace_app
           unzip -o "$LATEST_ZIP" -d workspace_app
-          echo "Contenido extraído correctamente en workspace_app:"
+          echo "Contenido extraído en workspace_app:"
           ls -la workspace_app
 
       - name: ⚙️ Configurar Directorio de Trabajo
         run: |
           if [ "$USE_ZIP" = "true" ]; then
-            # Si el archivo zip contenía una subcarpeta interna, reubicar
             if [ ! -f "workspace_app/package.json" ]; then
               SUBDIR=$(find workspace_app -maxdepth 2 -name "package.json" -exec dirname {} \;)
               if [ -n "$SUBDIR" ]; then
@@ -74,22 +72,29 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache-dependency-path: ${{ env.APP_DIR }}/package.json
 
-      - name: ☕ Configurar Java JDK 17
+      - name: ☕ Configurar Java JDK 17 (Eclipse Temurin)
         uses: actions/setup-java@v4
         with:
-          distribution: 'zulu'
+          distribution: 'temurin'
           java-version: '17'
 
-      - name: 📱 Configurar Android SDK
-        uses: android-actions/setup-android@v3
+      - name: 📱 Configurar Android SDK Nativo de GitHub
+        run: |
+          echo "Configurando Android SDK integrado en el runner..."
+          export ANDROID_HOME=/usr/local/lib/android/sdk
+          export ANDROID_SDK_ROOT=/usr/local/lib/android/sdk
+          echo "ANDROID_HOME=/usr/local/lib/android/sdk" >> $GITHUB_ENV
+          echo "ANDROID_SDK_ROOT=/usr/local/lib/android/sdk" >> $GITHUB_ENV
+          
+          # Aceptar automáticamente todas las licencias de Android SDK
+          yes | /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager --licenses || yes | sdkmanager --licenses || true
 
       - name: 📥 Instalar Dependencias de la App
         working-directory: ${{ env.APP_DIR }}
         run: |
           npm install --legacy-peer-deps
-          npm install @capacitor/core @capacitor/cli @capacitor/android --save
+          npm install @capacitor/core@latest @capacitor/cli@latest @capacitor/android@latest --save
 
       - name: 🏗️ Compilar Proyecto Web (Vite)
         working-directory: ${{ env.APP_DIR }}
@@ -121,7 +126,7 @@ jobs:
         working-directory: ${{ env.APP_DIR }}/android
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --stacktrace
+          ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: 📤 Subir APK Generado como Artefacto
         uses: actions/upload-artifact@v4
@@ -129,3 +134,10 @@ jobs:
           name: El-Impostor-APK-Debug
           path: ${{ env.APP_DIR }}/android/app/build/outputs/apk/debug/*.apk
           retention-days: 30
+
+      - name: 🎉 Notificación de Éxito
+        run: |
+          echo "================================================="
+          echo " ¡APK COMPILADO CON ÉXITO! 🎉"
+          echo " Puedes descargarlo en la pestaña 'Artifacts' de este run de GitHub Actions."
+          echo "================================================="
