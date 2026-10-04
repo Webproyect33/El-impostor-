@@ -26,7 +26,9 @@ jobs:
       - name: 🔍 Buscar el archivo .zip añadido más recientemente
         id: find_zip
         run: |
-          echo "Buscando archivos .zip en el repositorio..."
+          echo "=============================================="
+          echo " Buscando archivos .zip en el repositorio..."
+          echo "=============================================="
           ZIP_FILES=$(find . -maxdepth 3 -name "*.zip" -type f)
           
           if [ -z "$ZIP_FILES" ]; then
@@ -81,7 +83,7 @@ jobs:
       - name: 📥 Instalar Dependencias
         working-directory: ${{ env.APP_DIR }}
         run: |
-          npm install --legacy-peer-deps
+          npm install --include=dev --legacy-peer-deps
           npm install @capacitor/core@latest @capacitor/cli@latest @capacitor/android@latest --save
 
       - name: 🏗️ Compilar Proyecto Web (Vite)
@@ -89,7 +91,7 @@ jobs:
         run: |
           echo "Directorio actual y archivos:"
           ls -la
-          npx vite build --base=./
+          npm run build
 
       - name: 🤖 Inicializar y Sincronizar Capacitor Android
         working-directory: ${{ env.APP_DIR }}
