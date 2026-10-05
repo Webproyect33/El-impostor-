@@ -32,7 +32,8 @@ jobs:
           npm install @capacitor/core @capacitor/cli @capacitor/android --save --legacy-peer-deps
 
       - name: Compilar aplicacion web (Vite)
-        run: npm run build
+        run: |
+          npx vite build --base=./
 
       - name: Configurar Capacitor para Android
         run: |
