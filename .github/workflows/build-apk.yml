@@ -13,7 +13,7 @@ jobs:
       - name: Clonar Repositorio
         uses: actions/checkout@v4
 
-      # 1. Descomprime y acomoda los archivos en la raiz
+      # 1. Descomprime y acomoda archivos en la raiz
       - name: Preparar archivos
         run: |
           if ls *.zip 1> /dev/null 2>&1; then
@@ -53,17 +53,17 @@ jobs:
           npx cap add android || true
           npx cap sync android
 
-      # 6. Configurar entorno Java JDK
+      # 6. Configurar Java JDK 17 (SDK de Android nativo de GitHub)
       - name: Configurar Java JDK 17
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
-          cache: gradle
 
-      # 7. Configurar Android SDK
-      - name: Configurar Android SDK
-        uses: android-actions/setup-android@v3
+      # 7. Aceptar licencias de Android SDK
+      - name: Aceptar licencias de Android
+        run: |
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
 
       # 8. Permisos de ejecucion a Gradlew
       - name: Dar permisos a Gradlew
