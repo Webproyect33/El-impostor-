@@ -13,6 +13,14 @@ jobs:
       - name: Clonar Repositorio
         uses: actions/checkout@v4
 
+      # Si subiste el archivo .zip directamente a GitHub, lo descomprime automaticamente
+      - name: Descomprimir ZIP si existe
+        run: |
+          if ls *.zip 1> /dev/null 2>&1; then
+            echo "Detectado archivo ZIP, descomprimiendo..."
+            unzip -o *.zip
+          fi
+
       - name: Configurar Node.js 20
         uses: actions/setup-node@v4
         with:
